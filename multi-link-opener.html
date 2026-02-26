@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LinkBlast — Multi URL Opener</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --border: #222230;
+    --accent: #00f5a0;
+    --accent2: #00d4ff;
+    --danger: #ff4d6d;
+    --warn: #ffb703;
+    --text: #e8e8f0;
+    --muted: #666680;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: 
+      linear-gradient(rgba(0,245,160,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,245,160,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 60px 24px 80px;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 52px;
+  }
+
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .logo-icon {
+    width: 42px;
+    height: 42px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+  }
+
+  h1 {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #fff 30%, var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.1;
+  }
+
+  .tagline {
+    color: var(--muted);
+    font-size: 1rem;
+    margin-top: 10px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+  }
+
+  /* Main card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.6;
+  }
+
+  .section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  textarea {
+    width: 100%;
+    min-height: 220px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.82rem;
+    line-height: 1.7;
+    padding: 16px;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  textarea:focus {
+    border-color: rgba(0,245,160,0.4);
+    box-shadow: 0 0 0 3px rgba(0,245,160,0.06);
+  }
+
+  textarea::placeholder { color: var(--muted); }
+
+  /* Options row */
+  .options-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 20px;
+    align-items: center;
+  }
+
+  .toggle-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-size: 0.82rem;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+  }
+
+  .toggle-group:hover { border-color: var(--accent); color: var(--text); }
+
+  .toggle-group input { display: none; }
+
+  .toggle-group.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0,245,160,0.06);
+  }
+
+  .delay-input {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-size: 0.82rem;
+    color: var(--muted);
+  }
+
+  .delay-input input[type=number] {
+    width: 50px;
+    background: transparent;
+    border: none;
+    color: var(--accent);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.82rem;
+    outline: none;
+    text-align: center;
+  }
+
+  /* Actions */
+  .actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    letter-spacing: 0.02em;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #000;
+    flex: 1;
+    justify-content: center;
+    min-width: 180px;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(0,245,160,0.3);
+  }
+
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+
+  .btn-secondary:hover { border-color: var(--muted); color: var(--text); }
+
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Progress bar */
+  .progress-wrap {
+    display: none;
+    margin-top: 20px;
+  }
+
+  .progress-wrap.show { display: block; }
+
+  .progress-header {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .progress-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 4px;
+    width: 0%;
+    transition: width 0.3s ease;
+  }
+
+  /* Results */
+  .results-card {
+    display: none;
+  }
+
+  .results-card.show {
+    display: block;
+  }
+
+  .stats-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .stat-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 100px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .stat-pill.total { background: rgba(255,255,255,0.06); color: var(--text); }
+  .stat-pill.opened { background: rgba(0,245,160,0.12); color: var(--accent); }
+  .stat-pill.failed { background: rgba(255,77,109,0.12); color: var(--danger); }
+  .stat-pill.invalid { background: rgba(255,183,3,0.12); color: var(--warn); }
+
+  .url-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 340px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
+  .url-list::-webkit-scrollbar { width: 4px; }
+  .url-list::-webkit-scrollbar-track { background: transparent; }
+  .url-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .url-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    transition: all 0.3s ease;
+    animation: slideIn 0.3s ease forwards;
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+
+  @keyframes slideIn {
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .url-item.status-opened {
+    background: rgba(0,245,160,0.05);
+    border-color: rgba(0,245,160,0.15);
+  }
+
+  .url-item.status-invalid {
+    background: rgba(255,183,3,0.06);
+    border-color: rgba(255,183,3,0.25);
+  }
+
+  .url-item.status-failed {
+    background: rgba(255,77,109,0.06);
+    border-color: rgba(255,77,109,0.25);
+  }
+
+  .url-item.status-pending {
+    background: rgba(255,255,255,0.02);
+    border-color: var(--border);
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .status-opened .status-dot { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+  .status-invalid .status-dot { background: var(--warn); box-shadow: 0 0 6px var(--warn); }
+  .status-failed .status-dot { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+  .status-pending .status-dot { background: var(--muted); }
+
+  .url-text {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .status-invalid .url-text, .status-failed .url-text {
+    text-decoration: line-through;
+    opacity: 0.7;
+  }
+
+  .url-badge {
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .badge-opened { background: rgba(0,245,160,0.15); color: var(--accent); }
+  .badge-invalid { background: rgba(255,183,3,0.15); color: var(--warn); }
+  .badge-failed { background: rgba(255,77,109,0.15); color: var(--danger); }
+  .badge-pending { background: rgba(255,255,255,0.05); color: var(--muted); }
+
+  .url-link {
+    color: var(--muted);
+    text-decoration: none;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+    font-size: 1rem;
+  }
+
+  .url-link:hover { opacity: 1; }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 12px 22px;
+    border-radius: 100px;
+    font-size: 0.82rem;
+    font-family: 'Space Mono', monospace;
+    transition: transform 0.3s ease;
+    z-index: 100;
+    white-space: nowrap;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* Popup warning banner */
+  .popup-warning {
+    display: none;
+    background: rgba(255,183,3,0.08);
+    border: 1px solid rgba(255,183,3,0.3);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 0.8rem;
+    color: var(--warn);
+    margin-top: 14px;
+    font-family: 'Space Mono', monospace;
+    line-height: 1.6;
+  }
+
+  .popup-warning.show { display: block; }
+
+  @media (max-width: 600px) {
+    .btn-primary { min-width: 100%; }
+    h1 { font-size: 2rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+    </div>
+    <h1>LinkBlast</h1>
+    <p class="tagline">// open all urls in one click — invalid links auto-highlighted</p>
+  </div>
+
+  <div class="card">
+    <div class="section-label">paste your urls</div>
+    <textarea id="urlInput" placeholder="https://google.com
+https://github.com
+not-a-url
+https://example.com
+
+One URL per line. Invalid URLs will be highlighted automatically."></textarea>
+
+    <div class="options-row">
+      <label class="toggle-group" id="toggleHttps">
+        <input type="checkbox" id="autoHttps" checked>
+        <span>⚙ Auto-add https://</span>
+      </label>
+      <label class="toggle-group" id="toggleDupes">
+        <input type="checkbox" id="removeDupes" checked>
+        <span>🗑 Remove duplicates</span>
+      </label>
+      <label class="toggle-group" id="toggleValidate">
+        <input type="checkbox" id="validateOnly">
+        <span>🔍 Validate only</span>
+      </label>
+      <div class="delay-input">
+        ⏱ Delay:
+        <input type="number" id="delayMs" value="150" min="0" max="3000" step="50"> ms
+      </div>
+    </div>
+
+    <div class="popup-warning" id="popupWarning">
+      ⚠ Pop-up blocker may block multiple tabs. Allow pop-ups from this page in your browser settings for best results.
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" id="openBtn" onclick="processURLs()">
+        ⚡ Open All Links
+      </button>
+      <button class="btn btn-secondary" onclick="validateAll()">🔍 Validate</button>
+      <button class="btn btn-secondary" onclick="clearAll()">✕ Clear</button>
+    </div>
+
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-header">
+        <span id="progressLabel">Opening links...</span>
+        <span id="progressCount">0 / 0</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card results-card" id="resultsCard">
+    <div class="section-label">results</div>
+    <div class="stats-row" id="statsRow"></div>
+    <div class="url-list" id="urlList"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // Toggle checkbox states
+  ['toggleHttps','toggleDupes','toggleValidate'].forEach(id => {
+    const el = document.getElementById(id);
+    const cb = el.querySelector('input');
+    el.classList.toggle('active', cb.checked);
+    el.addEventListener('click', () => {
+      setTimeout(() => el.classList.toggle('active', cb.checked), 0);
+    });
+  });
+
+  function isValidURL(str) {
+    try {
+      const url = new URL(str);
+      return (url.protocol === 'http:' || url.protocol === 'https:') && url.hostname.includes('.');
+    } catch { return false; }
+  }
+
+  function parseURLs() {
+    const raw = document.getElementById('urlInput').value;
+    const autoHttps = document.getElementById('autoHttps').checked;
+    const removeDupes = document.getElementById('removeDupes').checked;
+
+    let lines = raw.split('\n')
+      .map(l => l.trim())
+      .filter(l => l.length > 0);
+
+    // Auto-add https
+    if (autoHttps) {
+      lines = lines.map(l => {
+        if (!l.match(/^https?:\/\//i) && !l.startsWith('ftp://') && !l.startsWith('//')) {
+          return 'https://' + l;
+        }
+        return l;
+      });
+    }
+
+    // Remove duplicates
+    if (removeDupes) {
+      lines = [...new Set(lines)];
+    }
+
+    return lines.map(url => ({
+      url,
+      valid: isValidURL(url)
+    }));
+  }
+
+  function showToast(msg, duration = 2500) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), duration);
+  }
+
+  function renderResults(urls, mode = 'all') {
+    const card = document.getElementById('resultsCard');
+    const list = document.getElementById('urlList');
+    const statsRow = document.getElementById('statsRow');
+    card.classList.add('show');
+    list.innerHTML = '';
+
+    const total = urls.length;
+    const invalid = urls.filter(u => !u.valid).length;
+    const opened = urls.filter(u => u.status === 'opened').length;
+    const failed = urls.filter(u => u.status === 'failed').length;
+
+    statsRow.innerHTML = `
+      <div class="stat-pill total">📊 ${total} total</div>
+      ${opened > 0 ? `<div class="stat-pill opened">✅ ${opened} opened</div>` : ''}
+      ${invalid > 0 ? `<div class="stat-pill invalid">⚠ ${invalid} invalid URL${invalid > 1 ? 's' : ''}</div>` : ''}
+      ${failed > 0 ? `<div class="stat-pill failed">✕ ${failed} failed</div>` : ''}
+    `;
+
+    urls.forEach((item, i) => {
+      const div = document.createElement('div');
+      div.className = `url-item status-${item.status || (item.valid ? 'pending' : 'invalid')}`;
+      div.style.animationDelay = `${i * 30}ms`;
+
+      const statusMap = {
+        opened: ['badge-opened', '✓ Opened'],
+        invalid: ['badge-invalid', '✕ Invalid URL'],
+        failed: ['badge-failed', '✕ Not Found'],
+        pending: ['badge-pending', '— Pending']
+      };
+      const st = item.status || (item.valid ? 'pending' : 'invalid');
+      const [badgeClass, badgeText] = statusMap[st] || statusMap.pending;
+
+      div.innerHTML = `
+        <div class="status-dot"></div>
+        <span class="url-text" title="${item.url}">${item.url}</span>
+        <span class="url-badge ${badgeClass}">${badgeText}</span>
+        ${item.valid ? `<a class="url-link" href="${item.url}" target="_blank" rel="noopener" title="Open">↗</a>` : ''}
+      `;
+      list.appendChild(div);
+    });
+  }
+
+  function validateAll() {
+    const urls = parseURLs();
+    if (urls.length === 0) { showToast('⚠ No URLs found'); return; }
+
+    urls.forEach(u => { if (!u.valid) u.status = 'invalid'; });
+    renderResults(urls, 'validate');
+
+    const invalidCount = urls.filter(u => !u.valid).length;
+    if (invalidCount === 0) {
+      showToast(`✅ All ${urls.length} URLs look valid`);
+    } else {
+      showToast(`⚠ ${invalidCount} invalid URL${invalidCount > 1 ? 's' : ''} highlighted`);
+    }
+  }
+
+  async function processURLs() {
+    const urls = parseURLs();
+    if (urls.length === 0) { showToast('⚠ Paste some URLs first'); return; }
+
+    const validateOnly = document.getElementById('validateOnly').checked;
+    const delayMs = parseInt(document.getElementById('delayMs').value) || 150;
+    const btn = document.getElementById('openBtn');
+    const progressWrap = document.getElementById('progressWrap');
+    const progressFill = document.getElementById('progressFill');
+    const progressLabel = document.getElementById('progressLabel');
+    const progressCount = document.getElementById('progressCount');
+
+    btn.disabled = true;
+    document.getElementById('popupWarning').classList.remove('show');
+
+    // Mark invalid upfront
+    urls.forEach(u => { if (!u.valid) u.status = 'invalid'; });
+
+    const validUrls = urls.filter(u => u.valid);
+
+    if (validateOnly || validUrls.length === 0) {
+      renderResults(urls);
+      btn.disabled = false;
+      if (validUrls.length === 0) showToast('⚠ No valid URLs to open');
+      else showToast(`🔍 ${urls.filter(u=>!u.valid).length} invalid URLs found`);
+      return;
+    }
+
+    progressWrap.classList.add('show');
+    progressLabel.textContent = 'Opening links...';
+
+    let opened = 0;
+    let popupBlocked = false;
+
+    for (let i = 0; i < validUrls.length; i++) {
+      const item = validUrls[i];
+      progressCount.textContent = `${i + 1} / ${validUrls.length}`;
+      progressFill.style.width = `${((i + 1) / validUrls.length) * 100}%`;
+
+      const win = window.open(item.url, '_blank');
+      if (!win || win.closed || typeof win.closed === 'undefined') {
+        item.status = 'failed';
+        popupBlocked = true;
+      } else {
+        item.status = 'opened';
+        opened++;
+      }
+
+      renderResults(urls);
+
+      if (i < validUrls.length - 1) {
+        await new Promise(r => setTimeout(r, delayMs));
+      }
+    }
+
+    progressLabel.textContent = 'Done!';
+    progressFill.style.width = '100%';
+
+    setTimeout(() => {
+      progressWrap.classList.remove('show');
+      btn.disabled = false;
+    }, 1500);
+
+    if (popupBlocked) {
+      document.getElementById('popupWarning').classList.add('show');
+      showToast('⚠ Pop-up blocker may have blocked some tabs', 4000);
+    } else {
+      showToast(`✅ Opened ${opened} link${opened !== 1 ? 's' : ''} successfully`);
+    }
+  }
+
+  function clearAll() {
+    document.getElementById('urlInput').value = '';
+    document.getElementById('resultsCard').classList.remove('show');
+    document.getElementById('progressWrap').classList.remove('show');
+    document.getElementById('popupWarning').classList.remove('show');
+    document.getElementById('openBtn').disabled = false;
+  }
+
+  // Live highlight invalid URLs as you type (with debounce)
+  let debounceTimer;
+  document.getElementById('urlInput').addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      const urls = parseURLs();
+      if (urls.length === 0) return;
+      const invalid = urls.filter(u => !u.valid);
+      if (invalid.length > 0) {
+        urls.forEach(u => { if (!u.valid) u.status = 'invalid'; });
+        renderResults(urls);
+      } else {
+        document.getElementById('resultsCard').classList.remove('show');
+      }
+    }, 600);
+  });
+</script>
+</body>
+</html>
